@@ -5,6 +5,8 @@ import pickle
 import torch
 from data_preprocessing.load_data import *
 from torch_geometric.data import Data, HeteroData
+import torch_geometric.transforms as T
+from data_preprocessing.feature_extraction import *
 
 
 def create_homogeneous_graph(news_id_dict, dataset='politifact', include_tweets=True, include_users=True,
@@ -57,7 +59,7 @@ def create_homogeneous_graph(news_id_dict, dataset='politifact', include_tweets=
 
 def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweets=True, include_users=True,
                                include_user_timeline_tweets=True, include_retweets=True, include_user_followers=True,
-                               include_user_following=True, exclude_empty_samples=True):
+                               include_user_following=True, exclude_empty_samples=True, to_undirected=True):
     node_ids = {'article': [],
                 'tweet': [],
                 'user': []}
@@ -76,8 +78,11 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
             if content_available(news_id=news_id, dataset=dataset, subset=subset):
                 news_content = get_news_content(news_id=news_id, dataset=dataset, subset=subset)
                 # news node feature
-                graph['article'].x.append(0)
-                graph['article'].y.append(0)
+                graph['article'].x.append(get_news_features(news_content))
+                if subset == 'fake':
+                    graph['article'].y.append(1)
+                elif subset == 'real':
+                    graph['article'].y.append(0)
                 node_ids['article'].append(news_id)
                 if include_tweets:
                     tweets_path, tweet_ids = get_news_tweet_ids(news_id=news_id, dataset=dataset, subset=subset)
@@ -85,7 +90,7 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
                         tweet_data = open_tweet_json(tweets_path, tweet)
                         if tweet_data['id'] not in node_ids['tweet']:
                             # tweets node features
-                            graph['tweet'].x.append(1)
+                            graph['tweet'].x.append(get_tweet_features(tweet_data))
                             node_ids['tweet'].append(tweet_data['id'])
                         node_id_news = node_ids['article'].index(news_id)
                         node_id_tweet = node_ids['tweet'].index(tweet_data['id'])
@@ -96,7 +101,7 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
                             if user_information:
                                 if user_information['id'] not in node_ids['user']:
                                     # user node features
-                                    graph['user'].x.append(2)
+                                    graph['user'].x.append(get_user_features(user_information))
                                     node_ids['user'].append(user_information['id'])
                                 node_id_user = node_ids['user'].index(user_information['id'])
                                 graph['user', 'posts', 'tweet'].edge_index[0] += [node_id_user]
@@ -105,6 +110,10 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
                             print(f"[WARNING] excluding sample with id {news_id} no user available")
             else:
                 print(f"[WARNING] excluding sample with id {news_id} no news or tweets available")
+                if len(news_ids) == 1:
+                    graph['article'].x = torch.tensor(graph['article'].x, dtype=torch.float32)
+                    return graph
+    graph['article'].x = text_embeddings(graph['article'].x)
     graph['article'].x = torch.tensor(graph['article'].x, dtype=torch.float32)
     graph['article'].y = torch.tensor(graph['article'].y, dtype=torch.long)
     if include_tweets:
@@ -113,6 +122,8 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
     if include_users:
         graph['user'].x = torch.tensor(graph['user'].x, dtype=torch.float32)
         graph['user', 'posts', 'tweet'].edge_index = torch.tensor(graph['user', 'posts', 'tweet'].edge_index, dtype=torch.long)
+    if to_undirected:
+        graph = T.ToUndirected()(graph)
     return graph
 
 
