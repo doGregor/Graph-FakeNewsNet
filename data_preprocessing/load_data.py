@@ -14,7 +14,9 @@ DATA_PATH = {
     'gossipcop_dir': '../data/fakenewsnet_dataset/gossipcop/',
     'politifact_dir': '../data/fakenewsnet_dataset/politifact/',
     'user_profiles_dir': '../data/fakenewsnet_dataset/user_profiles/',
-    'user_timeline_tweets_dir': '../data/fakenewsnet_dataset/user_timeline_tweets/'
+    'user_timeline_tweets_dir': '../data/fakenewsnet_dataset/user_timeline_tweets/',
+    'user_followers_dir': '../data/fakenewsnet_dataset/user_followers/',
+    'user_following_dir': '../data/fakenewsnet_dataset/user_following/'
 }
 
 
@@ -61,6 +63,15 @@ def get_news_tweet_ids(news_id, dataset='politifact', subset='fake'):
         return ("", [])
 
 
+def get_retweet_ids(news_id, dataset='politifact', subset='fake'):
+    data_path = '../data/fakenewsnet_dataset/' + dataset + '/' + subset + '/' + news_id + '/retweets/'
+    if os.path.exists(data_path):
+        retweet_files = os.listdir(data_path)
+        return (data_path, retweet_files)
+    else:
+        return ("", [])
+
+
 def open_tweet_json(data_path, file_name):
     file_path = data_path + file_name
     if os.path.exists(file_path):
@@ -69,6 +80,16 @@ def open_tweet_json(data_path, file_name):
         return tweet_data
     else:
         return {}
+
+
+def open_retweet_json(data_path, file_name):
+    file_path = data_path + file_name
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as retweet_json:
+            retweet_data = json.load(retweet_json)
+        return retweet_data['retweets']
+    else:
+        return []
 
 
 def get_news_content(news_id, dataset='politifact', subset='fake'):
@@ -98,12 +119,36 @@ def get_user_timeline_tweets(user_id):
             user_timeline_tweets = json.load(user_timeline_tweets_json)
         return user_timeline_tweets
     else:
-        return {}
+        return []
+
+
+def get_user_followers(user_id):
+    file_path = DATA_PATH['user_followers_dir'] + str(user_id) + '.json'
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as user_followers_json:
+            user_followers_info = json.load(user_followers_json)
+        return user_followers_info['followers']
+    else:
+        return []
+
+
+def get_user_following(user_id):
+    file_path = DATA_PATH['user_following_dir'] + str(user_id) + '.json'
+    if os.path.exists(file_path):
+        with open(file_path, 'r') as user_following_json:
+            user_following_info = json.load(user_following_json)
+        return user_following_info['following']
+    else:
+        return []
 
 
 def content_available(news_id, dataset='politifact', subset='fake'):
     if get_news_content(news_id=news_id, dataset=dataset, subset=subset) and (len(get_news_tweet_ids(news_id=news_id, dataset=dataset, subset=subset)[1]) > 0):
-        return True
+        news_content = get_news_content(news_id=news_id, dataset=dataset, subset=subset)
+        if news_content['text'] != '':
+            return True
+        else:
+            return False
     else:
         return False
 
@@ -112,16 +157,11 @@ if __name__ == '__main__':
     true, fake = get_news_ids()
     print(fake[0])
 
-    print(get_news_content(fake[1]))
+    print("NEWS CONTENT", get_news_content(fake[1]))
     data_path, tweet_ids = get_news_tweet_ids(fake[0])
-    print(data_path)
-    print(tweet_ids)
-    print(open_tweet_json(data_path, tweet_ids[0]))
+    print("DATA PATH", data_path)
+    print("TWEET IDS", tweet_ids)
+    print("TWEET DATA", open_tweet_json(data_path, tweet_ids[0]))
     example_user = open_tweet_json(data_path, tweet_ids[0])['user']['id']
-    print(get_user_information(example_user))
-    print(get_user_timeline_tweets(41)[0])
-
-
-    #users_example = get_news_tweet_ids(fake[1])
-    #print(users_example)
-    #print(get_user_information(users_example[1]))
+    print("USER DATA", get_user_information(example_user))
+    print("USER TIMELINE TWEETS", get_user_timeline_tweets(41)[0])
