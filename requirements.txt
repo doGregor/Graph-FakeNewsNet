@@ -1,0 +1,4 @@
+torch==1.10.0
+torch-geometric==2.0.2
+flair==0.10
+transformers==4.11.3
