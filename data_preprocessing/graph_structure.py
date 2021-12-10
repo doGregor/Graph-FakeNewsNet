@@ -143,7 +143,7 @@ def create_homogeneous_graph(news_id_dict, dataset='politifact', include_tweets=
 
 def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweets=True, include_users=True,
                                include_user_timeline_tweets=True, include_retweets=True, include_user_followers=True,
-                               include_user_following=True, to_undirected=True):
+                               include_user_following=True, to_undirected=True, include_text=False):
     node_ids = {'article': [],
                 'tweet': [],
                 'user': []}
@@ -274,12 +274,16 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
     graph['article'].x = torch.tensor(text_embeddings(graph['article'].x), dtype=torch.float32)
     graph['article'].y = torch.tensor(graph['article'].y, dtype=torch.long)
     if include_tweets:
-        # graph['tweet'].x = torch.tensor(np.concatenate((text_embeddings(graph['tweet'].x[0]), np.asarray(graph['tweet'].x[1])), axis=1), dtype=torch.float32)
-        graph['tweet'].x = torch.tensor(graph['tweet'].x[1], dtype=torch.float32)
+        if include_text:
+            graph['tweet'].x = torch.tensor(np.concatenate((text_embeddings(graph['tweet'].x[0]), np.asarray(graph['tweet'].x[1])), axis=1), dtype=torch.float32)
+        else:
+            graph['tweet'].x = torch.tensor(graph['tweet'].x[1], dtype=torch.float32)
         graph['tweet', 'cites', 'article'].edge_index = torch.tensor(graph['tweet', 'cites', 'article'].edge_index, dtype=torch.long)
     if include_users:
-        # graph['user'].x = torch.tensor(np.concatenate((text_embeddings(graph['user'].x[0]), np.asarray(graph['user'].x[1])), axis=1), dtype=torch.float32)
-        graph['user'].x =  torch.tensor(graph['user'].x[1], dtype=torch.float32)
+        if include_text:
+            graph['user'].x = torch.tensor(np.concatenate((text_embeddings(graph['user'].x[0]), np.asarray(graph['user'].x[1])), axis=1), dtype=torch.float32)
+        else:
+            graph['user'].x = torch.tensor(graph['user'].x[1], dtype=torch.float32)
         graph['user', 'posts', 'tweet'].edge_index = torch.tensor(graph['user', 'posts', 'tweet'].edge_index, dtype=torch.long)
     if include_user_followers or include_user_following:
         graph['user', 'follows', 'user'].edge_index = torch.tensor(graph['user', 'follows', 'user'].edge_index, dtype=torch.long)
@@ -287,7 +291,7 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
         graph['tweet', 'retweets', 'tweet'].edge_index = torch.tensor(graph['tweet', 'retweets', 'tweet'].edge_index, dtype=torch.long)
     graph = graph.coalesce()
     if to_undirected:
-        graph = T.ToUndirected(merge=True)(graph)
+        graph = T.ToUndirected(merge=False)(graph)
     return graph
 
 
@@ -315,8 +319,9 @@ if __name__ == '__main__':
 
     ids_true, ids_fake = get_news_ids()
 
-    for id in ids_fake[1:2]:
-        graph = create_heterogeneous_graph({'fake': [id]}, include_user_followers=False, include_user_following=False,
-                                           to_undirected=True)
-        print(graph)
-        #visualize_graph(graph, labels=True)
+    #for id in ids_fake[0:5]:
+
+    graph = create_homogeneous_graph({'fake': list(ids_fake[:10])}, include_user_followers=False, include_user_following=False,
+                                     to_undirected=True)
+    print(graph)
+    visualize_graph(graph, labels=True)
