@@ -11,7 +11,7 @@ from data_preprocessing.feature_extraction import *
 
 def create_homogeneous_graph(news_id_dict, dataset='politifact', include_tweets=True, include_users=True,
                              include_user_timeline_tweets=True, include_retweets=True, include_user_followers=True,
-                             include_user_following=True, to_undirected=True):
+                             include_user_following=True, add_new_users=False, to_undirected=True):
     node_ids = {'article': [],
                 'tweet': [],
                 'user': []}
@@ -105,7 +105,7 @@ def create_homogeneous_graph(news_id_dict, dataset='politifact', include_tweets=
                             node_id_follower = node_ids_all.index(follower_id)
                             graph.edge_index[0] += [node_id_follower]
                             graph.edge_index[1] += [node_id_user]
-                        elif get_user_information(follower_id):
+                        elif add_new_users and get_user_information(follower_id):
                             user_information = get_user_information(follower_id)
                             # followers user features
                             graph.x.append(2)
@@ -122,7 +122,7 @@ def create_homogeneous_graph(news_id_dict, dataset='politifact', include_tweets=
                             node_id_following = node_ids_all.index(following_id)
                             graph.edge_index[0] += [node_id_user]
                             graph.edge_index[1] += [node_id_following]
-                        elif get_user_information(following_id):
+                        elif add_new_users and get_user_information(following_id):
                             user_information = get_user_information(following_id)
                             # following user features
                             graph.x.append(2)
@@ -143,7 +143,7 @@ def create_homogeneous_graph(news_id_dict, dataset='politifact', include_tweets=
 
 def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweets=True, include_users=True,
                                include_user_timeline_tweets=True, include_retweets=True, include_user_followers=True,
-                               include_user_following=True, to_undirected=True, include_text=False):
+                               include_user_following=True, add_new_users=False, to_undirected=True, include_text=False):
     node_ids = {'article': [],
                 'tweet': [],
                 'user': []}
@@ -248,7 +248,7 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
                             node_id_follower = node_ids['user'].index(follower_id)
                             graph['user', 'follows', 'user'].edge_index[0] += [node_id_follower]
                             graph['user', 'follows', 'user'].edge_index[1] += [node_id_user]
-                        elif get_user_information(follower_id):
+                        elif add_new_users and get_user_information(follower_id):
                             user_information = get_user_information(follower_id)
                             graph['user'].x[0].append(get_user_features(user_information)[0])
                             graph['user'].x[1].append(get_user_features(user_information)[1:])
@@ -263,7 +263,7 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
                             node_id_following = node_ids['user'].index(following_id)
                             graph['user', 'follows', 'user'].edge_index[0] += [node_id_user]
                             graph['user', 'follows', 'user'].edge_index[1] += [node_id_following]
-                        elif get_user_information(following_id):
+                        elif add_new_users and get_user_information(following_id):
                             user_information = get_user_information(following_id)
                             graph['user'].x[0].append(get_user_features(user_information)[0])
                             graph['user'].x[1].append(get_user_features(user_information)[1:])

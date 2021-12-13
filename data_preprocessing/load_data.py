@@ -117,7 +117,7 @@ def get_user_timeline_tweets(user_id):
     if os.path.exists(file_path):
         with open(file_path, 'r') as user_timeline_tweets_json:
             user_timeline_tweets = json.load(user_timeline_tweets_json)
-        return user_timeline_tweets
+        return user_timeline_tweets[:5]
     else:
         return []
 
