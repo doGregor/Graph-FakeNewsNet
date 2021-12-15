@@ -3,9 +3,13 @@ import torch
 from sklearn.metrics import classification_report
 
 
+DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+
 def train_model(model, train_loader, loss_fct, optimizer):
     model.train()
     for batch_idx, data in enumerate(train_loader):  # Iterate in batches over the training dataset.
+        data.to(DEVICE)
         out = model(data.x_dict, data.edge_index_dict, data.batch_dict)  # Perform a single forward pass.
         loss = loss_fct(out, data['article'].y)  # Compute the loss.
         #print(10*'*', batch_idx, 10*'*')
@@ -22,6 +26,7 @@ def eval_model(model, test_loader, print_classification_report=False):
     true_y = []
     pred_y = []
     for data in test_loader:  # Iterate in batches over the training/test dataset.
+        data.to(DEVICE)
         out = model(data.x_dict, data.edge_index_dict, data.batch_dict)
         pred = out.argmax(dim=1)  # Use the class with highest probability.
         pred_y.append(pred.cpu().detach().numpy())
@@ -33,6 +38,7 @@ def eval_model(model, test_loader, print_classification_report=False):
 
 
 def train_eval_model(model, train_loader, test_loader, loss_fct, optimizer, num_epochs=1):
+    model.to(DEVICE)
     for epoch in range(1, num_epochs+1):
         train_model(model=model, train_loader=train_loader, loss_fct=loss_fct, optimizer=optimizer)
         train_acc = eval_model(model, train_loader)
