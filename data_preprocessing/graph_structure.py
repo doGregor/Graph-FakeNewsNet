@@ -280,7 +280,7 @@ def create_heterogeneous_graph(news_id_dict, dataset='politifact', include_tweet
             graph['tweet'].x = torch.tensor(graph['tweet'].x[1], dtype=torch.float32)
         graph['tweet', 'cites', 'article'].edge_index = torch.tensor(graph['tweet', 'cites', 'article'].edge_index, dtype=torch.long)
     if include_users:
-        if include_text:
+        if include_text and np.asarray(graph['user'].x[1]).shape[0] > 0:
             graph['user'].x = torch.tensor(np.concatenate((text_embeddings(graph['user'].x[0]), np.asarray(graph['user'].x[1])), axis=1), dtype=torch.float32)
         else:
             graph['user'].x = torch.tensor(graph['user'].x[1], dtype=torch.float32)
