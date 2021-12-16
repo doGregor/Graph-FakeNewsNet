@@ -13,13 +13,14 @@ ids_true, ids_fake = get_news_ids()
 print("Starting with real news...")
 for id in tqdm(list(ids_true)):
     graph = create_heterogeneous_graph({'real': [id]}, include_user_followers=False, include_user_following=False,
-                                       to_undirected=True, include_text=True)
+                                       include_retweets=False, to_undirected=True, include_text=True)
     if graph['article'].x.size()[0] > 0:
         graph_to_pickle(graph, id)
-        
+
+
 print("Starting with fake news...")
-for id in tqdm(list(ids_fake)):
+for id in tqdm(list(ids_fake[380:])):
     graph = create_heterogeneous_graph({'fake': [id]}, include_user_followers=False, include_user_following=False,
-                                       to_undirected=True, include_text=True)
+                                       include_retweets=False, to_undirected=True, include_text=True)
     if graph['article'].x.size()[0] > 0:
         graph_to_pickle(graph, id)
