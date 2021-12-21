@@ -5,15 +5,17 @@ from flair.data import Sentence
 import numpy as np
 
 
-def text_embeddings(text_array, model='bert-base-uncased'):
-    embedding = TransformerDocumentEmbeddings(model)
+EMBEDDING = TransformerDocumentEmbeddings('bert-base-uncased')
+
+
+def text_embeddings(text_array):
     embedding_array = []
     for sentence in text_array:
         if sentence == '' or sentence == ' ':
             embedding_array.append(np.zeros(768))
         else:
             sent = Sentence(sentence)
-            embedding.embed(sent)
+            EMBEDDING.embed(sent)
             embedding_array.append(sent.embedding.cpu().detach().numpy())
     return np.asarray(embedding_array)
 
