@@ -12,17 +12,11 @@ class GraphSAGE(torch.nn.Module):
 
         self.convs = torch.nn.ModuleList()
         for _ in range(num_layers):
-            #conv = HeteroConv({
-            #    ('user', 'posts', 'tweet'): SAGEConv((-1, -1), hidden_channels),
-            #    ('tweet', 'cites', 'article'): SAGEConv((-1, -1), hidden_channels),
-            #    ('article', 'rev_cites', 'tweet'): SAGEConv((-1, -1), hidden_channels),
-            #    ('tweet', 'rev_posts', 'user'): SAGEConv((-1, -1), hidden_channels)
-            #}, aggr='sum')
             conv = HeteroConv({edge_type: SAGEConv((-1, -1), hidden_channels) for edge_type in metadata[1]})
             self.convs.append(conv)
 
         self.lin = torch.nn.Linear(hidden_channels*3, out_channels)
-
+        
     def forward(self, x_dict, edge_index_dict, batch_dict):
 
         for conv in self.convs:
@@ -48,10 +42,8 @@ class GAT(torch.nn.Module):
                                                   add_self_loops=False) for edge_type in metadata[1]})
             self.convs.append(conv)
 
-        # self.lin1 = torch.nn.Linear(hidden_channels*3*num_attention_heads, hidden_channels*3)
-        # self.lin2 = torch.nn.Linear(hidden_channels*3, out_channels)
         self.lin = torch.nn.Linear(hidden_channels*3*num_attention_heads, out_channels)
-
+        
     def forward(self, x_dict, edge_index_dict, batch_dict):
 
         for conv in self.convs:
@@ -62,8 +54,6 @@ class GAT(torch.nn.Module):
         x = torch.cat([x_dict['article'], x_dict['tweet'], x_dict['user']], dim=1)
         x = F.dropout(x, p=0.5, training=self.training)
 
-        # x = self.lin1(x)
-        # x = self.lin2(x)
         x = self.lin(x)
 
         return x
@@ -84,7 +74,7 @@ class HGT(torch.nn.Module):
             self.convs.append(conv)
 
         self.lin = Linear(hidden_channels*3, out_channels)
-
+        
     def forward(self, x_dict, edge_index_dict, batch_dict):
         for node_type, x in x_dict.items():
             x_dict[node_type] = self.lin_dict[node_type](x).relu_()
