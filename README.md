@@ -32,8 +32,9 @@ root directory that has two subfolders with the same structure as FakeNewsNet's
 Python files that are related to graph machine learning
 
 - `gnn_models.py`: GNNs used for experiments: SAGE, GAT, HGT. Architecture is currently adapted to graphs that feature all types of information (important for mean pooling node types)
-- `gnn_training_py`: training and evaluation of models
+- `gnn_training.py`: training and evaluation of models
 
 ### `scripts`
 
 - `generate_graphs.py`: example script how to generate graphs. Parameters can be set to specify which node types should be considered
+- `run_experiment.py`: example script that shows how the generated graphs can be used to run graph classification experiments
