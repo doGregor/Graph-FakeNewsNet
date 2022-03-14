@@ -112,12 +112,15 @@ def get_user_information(user_id):
         return {}
 
 
-def get_user_timeline_tweets(user_id):
+def get_user_timeline_tweets(user_id, n=5):
     file_path = DATA_PATH['user_timeline_tweets_dir'] + str(user_id) + '.json'
     if os.path.exists(file_path):
         with open(file_path, 'r') as user_timeline_tweets_json:
             user_timeline_tweets = json.load(user_timeline_tweets_json)
-        return user_timeline_tweets[:5]
+        if n == 0:
+            return user_timeline_tweets
+        else:
+            return user_timeline_tweets[:n]
     else:
         return []
 
