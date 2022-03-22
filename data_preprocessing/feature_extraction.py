@@ -5,7 +5,7 @@ from flair.data import Sentence
 import numpy as np
 
 
-EMBEDDING = TransformerDocumentEmbeddings('bert-base-uncased')
+EMBEDDING = TransformerDocumentEmbeddings('bert-base-cased')
 
 
 def text_embeddings(text_array):
