@@ -19,3 +19,20 @@ class RecurrentGCN(torch.nn.Module):
         h = self.linear(h)
         
         return h, h_0, c_0
+
+
+class HeteroGRUGCN(torch.nn.Module):
+    def __init__(self, num_hidden_nodes, metadata, num_output_features):
+        super(HeteroGRUGCN, self).__init__()
+        self.recurrent = HeteroGConvGRU(metadata, num_hidden_nodes)
+        self.linear = torch.nn.Linear(num_hidden_nodes * 3, num_output_features)
+
+    def forward(self, x_dict, edge_index_dict, batch_dict, h_dict):
+        h_0 = self.recurrent(x_dict, edge_index_dict, h_dict)
+
+        h = {key: val.relu() for key, val in h_0.items()}
+        h = {key: global_mean_pool(val, batch_dict[key]) for key, val in h.items()}
+        h = torch.cat([h['article'], h['tweet'], h['user']], dim=1)
+        h = self.linear(h)
+
+        return h, h_0
