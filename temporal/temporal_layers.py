@@ -174,3 +174,95 @@ class HeteroGCLSTM(torch.nn.Module):
         o_dict = self._calculate_output_gate(x_dict, edge_index_dict, h_dict, c_dict)
         h_dict = self._calculate_hidden_state(o_dict, c_dict)
         return h_dict, c_dict
+
+
+class HeteroGConvGRU(torch.nn.Module):
+    def __init__(
+        self,
+        out_channels: int,
+        metadata: tuple,
+        bias: bool = True
+    ):
+        super(HeteroGConvGRU, self).__init__()
+
+        self.out_channels = out_channels
+        self.metadata = metadata,
+        self.bias = bias
+        self._create_parameters_and_layers()
+
+    def _create_update_gate_parameters_and_layers(self):
+
+        self.conv_x_z = HeteroConv({edge_type: SAGEConv(in_channels=(-1, -1),
+                                    out_channels=self.out_channels,
+                                    bias=self.bias) for edge_type in self.metadata[1]})
+
+        self.conv_h_z = HeteroConv({edge_type: SAGEConv(in_channels=(-1, -1),
+                                    out_channels=self.out_channels,
+                                    bias=self.bias) for edge_type in self.metadata[1]})
+
+    def _create_reset_gate_parameters_and_layers(self):
+
+        self.conv_x_r = HeteroConv({edge_type: SAGEConv(in_channels=(-1, -1),
+                                    out_channels=self.out_channels,
+                                    bias=self.bias) for edge_type in self.metadata[1]})
+
+        self.conv_h_r = HeteroConv({edge_type: SAGEConv(in_channels=(-1, -1),
+                                    out_channels=self.out_channels,
+                                    bias=self.bias) for edge_type in self.metadata[1]})
+
+    def _create_candidate_state_parameters_and_layers(self):
+
+        self.conv_x_h = HeteroConv({edge_type: SAGEConv(in_channels=(-1, -1),
+                                    out_channels=self.out_channels,
+                                    bias=self.bias) for edge_type in self.metadata[1]})
+
+        self.conv_h_h = HeteroConv({edge_type: SAGEConv(in_channels=(-1, -1),
+                                    out_channels=self.out_channels,
+                                    bias=self.bias) for edge_type in self.metadata[1]})
+
+    def _create_parameters_and_layers(self):
+        self._create_update_gate_parameters_and_layers()
+        self._create_reset_gate_parameters_and_layers()
+        self._create_candidate_state_parameters_and_layers()
+
+    def _set_hidden_state(self, x_dict, h_dict):
+        if h_dict is None:
+            h_dict = {node_type: torch.zeros(X.shape[0], self.out_channels).to('cuda') for node_type, X in x_dict.items()}
+        return h_dict
+
+    def _calculate_update_gate(self, x_dict, edge_index_dict, h_dict):
+        z_dict = self.conv_x_z(x_dict, edge_index_dict)
+        z_dict = {node_type: Z + self.conv_h_z(h_dict, edge_index_dict)[node_type] for node_type, Z in z_dict.items()}
+        z_dict = {node_type: torch.sigmoid(Z) for node_type, Z in z_dict.items()}
+        return z_dict
+
+    def _calculate_reset_gate(self, x_dict, edge_index_dict, h_dict):
+        r_dict = self.conv_x_r(x_dict, edge_index_dict)
+        r_dict = {node_type: R + self.conv_h_r(h_dict, edge_index_dict)[node_type] for node_type, R in r_dict.items()}
+        r_dict = {node_type: torch.sigmoid(R) for node_type, R in r_dict.items()}
+        return r_dict
+
+    def _calculate_candidate_state(self, x_dict, edge_index_dict, h_dict, r_dict):
+        h_tilde_dict = self.conv_x_h(x_dict, edge_index_dict)
+        h_tilde_dict = {node_type: h_tilde for node_type, h_tilde in h_tilde_dict.items()}
+        h_r_dict = {node_type: H * r_dict[node_type] for node_type, H in h_dict.items()}
+        h_tilde_dict = {node_type: h_tilde + self.conv_h_h(h_r_dict, edge_index_dict) for node_type, h_tilde in h_tilde_dict.items()}
+        h_tilde_dict = {node_type: torch.tanh(h_tilde) for node_type, h_tilde in h_tilde_dict.items()}
+        return h_tilde_dict
+
+    def _calculate_hidden_state(self, z_dict, h_dict, h_tilde_dict):
+        h_dict = {node_type: z_dict[node_type] * H + (1 - z_dict[node_type]) * h_tilde_dict[node_type] for node_type, H in h_dict.items()}
+        return h_dict
+
+    def forward(
+        self,
+        x_dict,
+        edge_index_dict,
+        h_dict=None,
+    ):
+        h_dict = self._set_hidden_state(x_dict, h_dict)
+        z_dict = self._calculate_update_gate(x_dict, edge_index_dict, h_dict)
+        r_dict = self._calculate_reset_gate(x_dict, edge_index_dict, h_dict)
+        h_tilde_dict = self._calculate_candidate_state(x_dict, edge_index_dict, h_dict, r_dict)
+        h_dict = self._calculate_hidden_state(z_dict, h_dict, h_tilde_dict)
+        return h_dict
