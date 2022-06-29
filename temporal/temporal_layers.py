@@ -186,7 +186,7 @@ class HeteroGConvGRU(torch.nn.Module):
         super(HeteroGConvGRU, self).__init__()
 
         self.out_channels = out_channels
-        self.metadata = metadata,
+        self.metadata = metadata
         self.bias = bias
         self._create_parameters_and_layers()
 
@@ -246,7 +246,7 @@ class HeteroGConvGRU(torch.nn.Module):
         h_tilde_dict = self.conv_x_h(x_dict, edge_index_dict)
         h_tilde_dict = {node_type: h_tilde for node_type, h_tilde in h_tilde_dict.items()}
         h_r_dict = {node_type: H * r_dict[node_type] for node_type, H in h_dict.items()}
-        h_tilde_dict = {node_type: h_tilde + self.conv_h_h(h_r_dict, edge_index_dict) for node_type, h_tilde in h_tilde_dict.items()}
+        h_tilde_dict = {node_type: h_tilde + self.conv_h_h(h_r_dict, edge_index_dict)[node_type] for node_type, h_tilde in h_tilde_dict.items()}
         h_tilde_dict = {node_type: torch.tanh(h_tilde) for node_type, h_tilde in h_tilde_dict.items()}
         return h_tilde_dict
 
