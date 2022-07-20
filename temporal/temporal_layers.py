@@ -2,6 +2,7 @@ import torch
 from torch.nn import Parameter
 from torch_geometric.nn import HeteroConv, SAGEConv
 from torch_geometric.nn.inits import glorot
+import torch.nn as nn
 
 
 class HeteroGCLSTM(torch.nn.Module):
@@ -37,40 +38,40 @@ class HeteroGCLSTM(torch.nn.Module):
                                                       out_channels=self.out_channels,
                                                       bias=self.bias) for edge_type in self.metadata[1]})
 
-        self.W_i = {node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda') 
-                    for node_type, in_channels in self.in_channels_dict.items()}
-        self.b_i = {node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda') 
-                    for node_type in self.in_channels_dict}
+        self.W_i = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda')
+                                     for node_type, in_channels in self.in_channels_dict.items()})
+        self.b_i = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda')
+                                     for node_type in self.in_channels_dict})
 
     def _create_forget_gate_parameters_and_layers(self):
         self.conv_f = HeteroConv({edge_type: SAGEConv(in_channels=(-1, -1),
                                                       out_channels=self.out_channels,
                                                       bias=self.bias) for edge_type in self.metadata[1]})
 
-        self.W_f = {node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda') 
-                    for node_type, in_channels in self.in_channels_dict.items()}
-        self.b_f = {node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda') 
-                    for node_type in self.in_channels_dict}
+        self.W_f = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda')
+                                     for node_type, in_channels in self.in_channels_dict.items()})
+        self.b_f = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda')
+                                     for node_type in self.in_channels_dict})
 
     def _create_cell_state_parameters_and_layers(self):
         self.conv_c = HeteroConv({edge_type: SAGEConv(in_channels=(-1, -1),
                                                       out_channels=self.out_channels,
                                                       bias=self.bias) for edge_type in self.metadata[1]})
 
-        self.W_c = {node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda') 
-                    for node_type, in_channels in self.in_channels_dict.items()}
-        self.b_c = {node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda') 
-                    for node_type in self.in_channels_dict}
+        self.W_c = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda')
+                                     for node_type, in_channels in self.in_channels_dict.items()})
+        self.b_c = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda')
+                                     for node_type in self.in_channels_dict})
 
     def _create_output_gate_parameters_and_layers(self):
         self.conv_o = HeteroConv({edge_type: SAGEConv(in_channels=(-1, -1),
                                                       out_channels=self.out_channels,
                                                       bias=self.bias) for edge_type in self.metadata[1]})
 
-        self.W_o = {node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda') 
-                    for node_type, in_channels in self.in_channels_dict.items()}
-        self.b_o = {node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda') 
-                    for node_type in self.in_channels_dict}
+        self.W_o = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda')
+                                     for node_type, in_channels in self.in_channels_dict.items()})
+        self.b_o = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda')
+                                     for node_type in self.in_channels_dict})
 
     def _create_parameters_and_layers(self):
         self._create_input_gate_parameters_and_layers()
@@ -108,21 +109,24 @@ class HeteroGCLSTM(torch.nn.Module):
 
     def _calculate_input_gate(self, x_dict, edge_index_dict, h_dict, c_dict):
         i_dict = {node_type: torch.matmul(X, self.W_i[node_type]) for node_type, X in x_dict.items()}
-        i_dict = {node_type: I + self.conv_i(h_dict, edge_index_dict)[node_type] for node_type, I in i_dict.items()}
+        conv_i = self.conv_i(h_dict, edge_index_dict)
+        i_dict = {node_type: I + conv_i[node_type] for node_type, I in i_dict.items()}
         i_dict = {node_type: I + self.b_i[node_type] for node_type, I in i_dict.items()}
         i_dict = {node_type: torch.sigmoid(I) for node_type, I in i_dict.items()}
         return i_dict
 
     def _calculate_forget_gate(self, x_dict, edge_index_dict, h_dict, c_dict):
         f_dict = {node_type: torch.matmul(X, self.W_f[node_type]) for node_type, X in x_dict.items()}
-        f_dict = {node_type: F + self.conv_f(h_dict, edge_index_dict)[node_type] for node_type, F in f_dict.items()}
+        conv_f = self.conv_f(h_dict, edge_index_dict)
+        f_dict = {node_type: F + conv_f[node_type] for node_type, F in f_dict.items()}
         f_dict = {node_type: F + self.b_f[node_type] for node_type, F in f_dict.items()}
         f_dict = {node_type: torch.sigmoid(F) for node_type, F in f_dict.items()}
         return f_dict
 
     def _calculate_cell_state(self, x_dict, edge_index_dict, h_dict, c_dict, i_dict, f_dict):
         t_dict = {node_type: torch.matmul(X, self.W_c[node_type]) for node_type, X in x_dict.items()}
-        t_dict = {node_type: T + self.conv_c(h_dict, edge_index_dict)[node_type] for node_type, T in t_dict.items()}
+        conv_c = self.conv_c(h_dict, edge_index_dict)
+        t_dict = {node_type: T + conv_c[node_type] for node_type, T in t_dict.items()}
         t_dict = {node_type: T + self.b_c[node_type] for node_type, T in t_dict.items()}
         t_dict = {node_type: torch.tanh(T) for node_type, T in t_dict.items()}
         c_dict = {node_type: f_dict[node_type] * C + i_dict[node_type] * t_dict[node_type] for node_type, C in c_dict.items()}
@@ -130,7 +134,8 @@ class HeteroGCLSTM(torch.nn.Module):
 
     def _calculate_output_gate(self, x_dict, edge_index_dict, h_dict, c_dict):
         o_dict = {node_type: torch.matmul(X, self.W_o[node_type]) for node_type, X in x_dict.items()}
-        o_dict = {node_type: O + self.conv_o(h_dict, edge_index_dict)[node_type] for node_type, O in o_dict.items()}
+        conv_o = self.conv_o(h_dict, edge_index_dict)
+        o_dict = {node_type: O + conv_o[node_type] for node_type, O in o_dict.items()}
         o_dict = {node_type: O + self.b_o[node_type] for node_type, O in o_dict.items()}
         o_dict = {node_type: torch.sigmoid(O) for node_type, O in o_dict.items()}
         return o_dict
@@ -232,13 +237,15 @@ class HeteroGConvGRU(torch.nn.Module):
 
     def _calculate_update_gate(self, x_dict, edge_index_dict, h_dict):
         z_dict = self.conv_x_z(x_dict, edge_index_dict)
-        z_dict = {node_type: Z + self.conv_h_z(h_dict, edge_index_dict)[node_type] for node_type, Z in z_dict.items()}
+        conv_h_z = self.conv_h_z(h_dict, edge_index_dict)
+        z_dict = {node_type: Z + conv_h_z[node_type] for node_type, Z in z_dict.items()}
         z_dict = {node_type: torch.sigmoid(Z) for node_type, Z in z_dict.items()}
         return z_dict
 
     def _calculate_reset_gate(self, x_dict, edge_index_dict, h_dict):
         r_dict = self.conv_x_r(x_dict, edge_index_dict)
-        r_dict = {node_type: R + self.conv_h_r(h_dict, edge_index_dict)[node_type] for node_type, R in r_dict.items()}
+        conv_h_r = self.conv_h_r(h_dict, edge_index_dict)
+        r_dict = {node_type: R + conv_h_r[node_type] for node_type, R in r_dict.items()}
         r_dict = {node_type: torch.sigmoid(R) for node_type, R in r_dict.items()}
         return r_dict
 
@@ -246,7 +253,8 @@ class HeteroGConvGRU(torch.nn.Module):
         h_tilde_dict = self.conv_x_h(x_dict, edge_index_dict)
         h_tilde_dict = {node_type: h_tilde for node_type, h_tilde in h_tilde_dict.items()}
         h_r_dict = {node_type: H * r_dict[node_type] for node_type, H in h_dict.items()}
-        h_tilde_dict = {node_type: h_tilde + self.conv_h_h(h_r_dict, edge_index_dict)[node_type] for node_type, h_tilde in h_tilde_dict.items()}
+        conv_h_h = self.conv_h_h(h_r_dict, edge_index_dict)
+        h_tilde_dict = {node_type: h_tilde + conv_h_h[node_type] for node_type, h_tilde in h_tilde_dict.items()}
         h_tilde_dict = {node_type: torch.tanh(h_tilde) for node_type, h_tilde in h_tilde_dict.items()}
         return h_tilde_dict
 
