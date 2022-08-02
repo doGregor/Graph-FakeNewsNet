@@ -11,7 +11,7 @@ EMBEDDING = TransformerDocumentEmbeddings('bert-base-cased')
 def text_embeddings(text_array):
     embedding_array = []
     for sentence in text_array:
-        if sentence == '' or sentence == ' ':
+        if sentence.strip() == '':
             embedding_array.append(np.zeros(768))
         else:
             sent = Sentence(sentence)
