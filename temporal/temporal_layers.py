@@ -38,9 +38,9 @@ class HeteroGCLSTM(torch.nn.Module):
                                                       out_channels=self.out_channels,
                                                       bias=self.bias) for edge_type in self.metadata[1]})
 
-        self.W_i = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda')
+        self.W_i = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels))
                                      for node_type, in_channels in self.in_channels_dict.items()})
-        self.b_i = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda')
+        self.b_i = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels))
                                      for node_type in self.in_channels_dict})
 
     def _create_forget_gate_parameters_and_layers(self):
@@ -48,9 +48,9 @@ class HeteroGCLSTM(torch.nn.Module):
                                                       out_channels=self.out_channels,
                                                       bias=self.bias) for edge_type in self.metadata[1]})
 
-        self.W_f = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda')
+        self.W_f = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels))
                                      for node_type, in_channels in self.in_channels_dict.items()})
-        self.b_f = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda')
+        self.b_f = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels))
                                      for node_type in self.in_channels_dict})
 
     def _create_cell_state_parameters_and_layers(self):
@@ -58,9 +58,9 @@ class HeteroGCLSTM(torch.nn.Module):
                                                       out_channels=self.out_channels,
                                                       bias=self.bias) for edge_type in self.metadata[1]})
 
-        self.W_c = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda')
+        self.W_c = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels))
                                      for node_type, in_channels in self.in_channels_dict.items()})
-        self.b_c = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda')
+        self.b_c = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels))
                                      for node_type in self.in_channels_dict})
 
     def _create_output_gate_parameters_and_layers(self):
@@ -68,9 +68,9 @@ class HeteroGCLSTM(torch.nn.Module):
                                                       out_channels=self.out_channels,
                                                       bias=self.bias) for edge_type in self.metadata[1]})
 
-        self.W_o = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels)).to('cuda')
+        self.W_o = nn.ParameterDict({node_type: Parameter(torch.Tensor(in_channels, self.out_channels))
                                      for node_type, in_channels in self.in_channels_dict.items()})
-        self.b_o = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels)).to('cuda')
+        self.b_o = nn.ParameterDict({node_type: Parameter(torch.Tensor(1, self.out_channels))
                                      for node_type in self.in_channels_dict})
 
     def _create_parameters_and_layers(self):
