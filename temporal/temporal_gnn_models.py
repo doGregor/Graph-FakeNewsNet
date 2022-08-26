@@ -38,3 +38,21 @@ class HeteroGRUGCN(torch.nn.Module):
         h = self.linear(h)
 
         return h, h_0
+
+
+class HeteroGATGRUModel(torch.nn.Module):
+    def __init__(self, num_hidden_nodes, metadata, num_output_features, num_attention_heads=3):
+        super(HeteroGATGRUModel, self).__init__()
+        self.recurrent = HeteroGATGRU(num_hidden_nodes, metadata, num_attention_heads)
+        self.linear = torch.nn.Linear(num_hidden_nodes * 3 * num_attention_heads, num_output_features)
+
+    def forward(self, x_dict, edge_index_dict, batch_dict, h_dict):
+        h_0 = self.recurrent(x_dict, edge_index_dict, h_dict)
+
+        h = {key: val.relu() for key, val in h_0.items()}
+        h = {key: global_mean_pool(val, batch_dict[key]) for key, val in h.items()}
+        h = torch.cat([h['article'], h['tweet'], h['user']], dim=1)
+        h = F.dropout(h, p=0.5, training=self.training)
+        h = self.linear(h)
+
+        return h, h_0
