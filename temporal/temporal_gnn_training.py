@@ -8,7 +8,7 @@ from sklearn.metrics import classification_report, accuracy_score, f1_score, pre
 DEVICE = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-def train_temporal_model(model, train_batches, loss_fct, optimizer, shuffle_batches=True):
+def train_temporal_model(model, train_batches, loss_fct, optimizer, shuffle_batches=True, cumulative_costs=True):
     model.train()
     y_true = []
     y_pred = []
@@ -25,12 +25,15 @@ def train_temporal_model(model, train_batches, loss_fct, optimizer, shuffle_batc
             snapshot_batch.to(DEVICE)
             y_hat, h_dict = model(snapshot_batch.x_dict, snapshot_batch.edge_index_dict,
                                   snapshot_batch.batch_dict, h_dict)
-            cost += loss_fct(y_hat, torch.flatten(snapshot_batch['article'].y))
-            # cost = loss_fct(y_hat, torch.flatten(snapshot_batch['article'].y))
+            if cumulative_costs:
+                cost += loss_fct(y_hat, torch.flatten(snapshot_batch['article'].y))
+            else:
+                cost = loss_fct(y_hat, torch.flatten(snapshot_batch['article'].y))
             if idx_snap == len(batch[0]) - 1:
                 y_pred.append(y_hat.argmax(dim=1).cpu().detach().numpy())
                 y_true.append(snapshot_batch['article'].y.cpu().detach().numpy())
-        cost /= len(batch[0])
+        if cumulative_costs:
+            cost /= len(batch[0])
         cost.backward()
         optimizer.step()
         optimizer.zero_grad()
@@ -57,11 +60,13 @@ def evaluate_temporal_model(model, test_batches):
     return true_y, pred_y
 
 
-def train_eval_temporal_model(model, train_batches, test_batches, loss_fct, optimizer, num_epochs=20, verbose=1):
+def train_eval_temporal_model(model, train_batches, test_batches, loss_fct, optimizer, cumulative_costs=True,
+                              shuffle_train_batches=True, num_epochs=20, verbose=1):
     for epoch in range(num_epochs):
         model.to(DEVICE)
-        true_train, pred_train = train_temporal_model(model=model, train_batches=train_batches,
-                                                      loss_fct=loss_fct, optimizer=optimizer)
+        true_train, pred_train = train_temporal_model(model=model, train_batches=train_batches, loss_fct=loss_fct,
+                                                      shuffle_batches=shuffle_train_batches, optimizer=optimizer,
+                                                      cumulative_costs=cumulative_costs)
         true_test, pred_test = evaluate_temporal_model(model=model, test_batches=test_batches)
 
         true_train = np.concatenate(true_train)
