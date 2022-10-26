@@ -1,7 +1,7 @@
 from temporal.temporal_layers import *
 import torch.nn.functional as F
 import torch
-from torch_geometric.nn import global_mean_pool
+from torch_geometric.nn import global_mean_pool, HGTConv
 from torch.nn import Transformer
 import math
 
@@ -87,7 +87,11 @@ class TransformerGAT(torch.nn.Module):
                  num_graph_features,
                  num_output_features,
                  metadata,
+                 num_attention_heads=1,
                  num_layers=2,
+                 num_hidden_gnn=64,
+                 num_output_gnn=8,
+                 num_transformer_heads=8,
                  num_encoders=3,
                  num_decoders=3):
         super(TransformerGAT, self).__init__()
@@ -95,14 +99,15 @@ class TransformerGAT(torch.nn.Module):
         self.graph_convs = nn.ModuleList()
         for i in range(num_timesteps):
             convs = nn.ModuleList()
-            convs.append(HeteroConv({edge_type: SAGEConv((-1, -1), 64) for edge_type in metadata[1]}))
-            convs.append(HeteroConv({edge_type: SAGEConv((-1, -1), 8) for edge_type in metadata[1]}))
+            convs.append(HGTConv(-1, num_hidden_gnn, metadata, num_attention_heads))
+            convs.append(HGTConv(-1, num_output_gnn, metadata, num_attention_heads))
             self.graph_convs.append(convs)
 
         self.pos_encoder = PositionalEncoding(d_model=num_graph_features)
         self.Transformer = Transformer(d_model=num_graph_features,
                                        num_encoder_layers=num_encoders,
-                                       num_decoder_layers=num_decoders)
+                                       num_decoder_layers=num_decoders,
+                                       nhead=num_transformer_heads)
 
         self.linear = torch.nn.Linear(num_timesteps * num_graph_features, num_output_features)
 
