@@ -38,3 +38,24 @@ Python files that are related to graph machine learning
 
 - `generate_graphs.py`: example script how to generate graphs. Parameters can be set to specify which node types should be considered
 - `run_experiment.py`: example script that shows how the generated graphs can be used to run graph classification experiments
+
+
+# Citation
+
+The paper based on this idea was accepted at ECIR 2023. If you use parts of our code or adopt our approach we kindly ask you to cite our work as follows:
+```
+@inproceedings{10.1007/978-3-031-28238-6_29,
+author = {Donabauer, Gregor and Kruschwitz, Udo},
+title = {Exploring Fake News Detection with Heterogeneous Social Media Context Graphs},
+year = {2023},
+isbn = {978-3-031-28237-9},
+publisher = {Springer-Verlag},
+address = {Berlin, Heidelberg},
+url = {https://doi.org/10.1007/978-3-031-28238-6_29},
+doi = {10.1007/978-3-031-28238-6_29},
+booktitle = {Advances in Information Retrieval: 45th European Conference on Information Retrieval, ECIR 2023, Dublin, Ireland, April 2–6, 2023, Proceedings, Part II},
+pages = {396–405},
+numpages = {10},
+location = {Dublin, Ireland}
+}
+```
