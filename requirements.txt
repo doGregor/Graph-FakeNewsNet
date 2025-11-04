@@ -1,6 +1,6 @@
-torch==1.13.1
-torch-geometric==2.0.2
-flair==0.10
-transformers==4.11.3
+torch
+torch-geometric
+flair
+transformers
 tqdm
 scikit-learn
